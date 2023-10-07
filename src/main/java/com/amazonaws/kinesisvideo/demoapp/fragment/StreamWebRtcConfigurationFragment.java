@@ -65,7 +65,7 @@ public class StreamWebRtcConfigurationFragment extends Fragment {
     public static final String KEY_ICE_SERVER_URI = "iceServerUri";
     public static final String KEY_CAMERA_FRONT_FACING = "cameraFrontFacing";
 
-    private static final String KEY_SEND_VIDEO = "sendVideo";
+    public static final String KEY_SEND_VIDEO = "sendVideo";    // whl private
     public static final String KEY_SEND_AUDIO = "sendAudio";
 
     private static final String[] WEBRTC_OPTIONS = {
@@ -136,8 +136,10 @@ public class StreamWebRtcConfigurationFragment extends Fragment {
                     ctv.setText(WEBRTC_OPTIONS[position]);
 
                     // Send video is enabled by default and cannot uncheck
+
+                    /*
                     if (position == 0) {
-                        ctv.setEnabled(false);
+                        ctv.setEnabled(true);  // whl ctv.setEnabled(false);
                         ctv.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View view) {
@@ -145,6 +147,8 @@ public class StreamWebRtcConfigurationFragment extends Fragment {
                             }
                         });
                     }
+                    */
+
                     return v;
                 }
 
@@ -153,7 +157,7 @@ public class StreamWebRtcConfigurationFragment extends Fragment {
         });
         mOptions.setItemsCanFocus(false);
         mOptions.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
-        mOptions.setItemChecked(0, true);
+        mOptions.setItemChecked(0, false); // whl true
 
         mCameras = view.findViewById(R.id.camera_spinner);
 

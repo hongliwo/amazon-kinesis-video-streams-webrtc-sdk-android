@@ -86,6 +86,7 @@ import static com.amazonaws.kinesisvideo.demoapp.fragment.StreamWebRtcConfigurat
 import static com.amazonaws.kinesisvideo.demoapp.fragment.StreamWebRtcConfigurationFragment.KEY_ICE_SERVER_USER_NAME;
 import static com.amazonaws.kinesisvideo.demoapp.fragment.StreamWebRtcConfigurationFragment.KEY_IS_MASTER;
 import static com.amazonaws.kinesisvideo.demoapp.fragment.StreamWebRtcConfigurationFragment.KEY_REGION;
+import static com.amazonaws.kinesisvideo.demoapp.fragment.StreamWebRtcConfigurationFragment.KEY_SEND_VIDEO;
 import static com.amazonaws.kinesisvideo.demoapp.fragment.StreamWebRtcConfigurationFragment.KEY_SEND_AUDIO;
 import static com.amazonaws.kinesisvideo.demoapp.fragment.StreamWebRtcConfigurationFragment.KEY_WSS_ENDPOINT;
 
@@ -130,6 +131,7 @@ public class WebRtcActivity extends AppCompatActivity {
     private int mNotificationId = 0;
 
     private boolean master = true;
+    private boolean isVideoSent = false;
     private boolean isAudioSent = false;
 
     private EditText dataChannelText = null;
@@ -401,6 +403,7 @@ public class WebRtcActivity extends AppCompatActivity {
             mClientId = UUID.randomUUID().toString();
         }
         master = intent.getBooleanExtra(KEY_IS_MASTER, true);
+        isVideoSent = intent.getBooleanExtra(KEY_SEND_VIDEO, false);
         isAudioSent = intent.getBooleanExtra(KEY_SEND_AUDIO, false);
         ArrayList<String> mUserNames = intent.getStringArrayListExtra(KEY_ICE_SERVER_USER_NAME);
         ArrayList<String> mPasswords = intent.getStringArrayListExtra(KEY_ICE_SERVER_PASSWORD);
@@ -454,13 +457,16 @@ public class WebRtcActivity extends AppCompatActivity {
         localView.init(rootEglBase.getEglBaseContext(), null);
         localView.setEnableHardwareScaler(true);
 
+        if (isVideoSent) {
+            videoSource = peerConnectionFactory.createVideoSource(false);
+            //videoSource.adaptOutputFormat(1280,720,30);
+            //videoSource.adaptOutputFormat(1280,720,720,1280,30);
+            SurfaceTextureHelper surfaceTextureHelper = SurfaceTextureHelper.create(Thread.currentThread().getName(), rootEglBase.getEglBaseContext());
+            videoCapturer.initialize(surfaceTextureHelper, this.getApplicationContext(), videoSource.getCapturerObserver());
 
-        videoSource = peerConnectionFactory.createVideoSource(false);
-        SurfaceTextureHelper surfaceTextureHelper = SurfaceTextureHelper.create(Thread.currentThread().getName(), rootEglBase.getEglBaseContext());
-        videoCapturer.initialize(surfaceTextureHelper, this.getApplicationContext(), videoSource.getCapturerObserver());
-
-        localVideoTrack = peerConnectionFactory.createVideoTrack(VideoTrackID, videoSource);
-        localVideoTrack.addSink(localView);
+            localVideoTrack = peerConnectionFactory.createVideoTrack(VideoTrackID, videoSource);
+            localVideoTrack.addSink(localView);
+        }
 
         if(isAudioSent) {
 
@@ -474,9 +480,11 @@ public class WebRtcActivity extends AppCompatActivity {
         originalAudioMode = audioManager.getMode();
         originalSpeakerphoneOn = audioManager.isSpeakerphoneOn();
 
-        // Start capturing video
-        videoCapturer.startCapture(VIDEO_SIZE_WIDTH, VIDEO_SIZE_HEIGHT, VIDEO_FPS);
-        localVideoTrack.setEnabled(true);
+        if (isVideoSent) {
+            // Start capturing video
+            videoCapturer.startCapture(VIDEO_SIZE_WIDTH, VIDEO_SIZE_HEIGHT, VIDEO_FPS);
+            localVideoTrack.setEnabled(true);
+        }
 
         remoteView = findViewById(R.id.remote_view);
         remoteView.init(rootEglBase.getEglBaseContext(), null);
@@ -651,12 +659,14 @@ public class WebRtcActivity extends AppCompatActivity {
 
         MediaStream stream = peerConnectionFactory.createLocalMediaStream(LOCAL_MEDIA_STREAM_LABEL);
 
-        if (!stream.addTrack(localVideoTrack)) {
+        if (isVideoSent) {
+            if (!stream.addTrack(localVideoTrack)) {
 
-            Log.e(TAG, "Add video track failed");
+                Log.e(TAG, "Add video track failed");
+            }
+
+            localPeer.addTrack(stream.videoTracks.get(0), Collections.singletonList(stream.getId()));
         }
-
-        localPeer.addTrack(stream.videoTracks.get(0), Collections.singletonList(stream.getId()));
 
         if(isAudioSent) {
             if (!stream.addTrack(localAudioTrack)) {
@@ -777,7 +787,7 @@ public class WebRtcActivity extends AppCompatActivity {
             remoteAudioTrack.setEnabled(true);
             Log.d(TAG, "remoteAudioTrack received: State=" + remoteAudioTrack.state().name());
             audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
-            audioManager.setSpeakerphoneOn(true);
+            //audioManager.setSpeakerphoneOn(true); // henry
         }
 
         if(remoteVideoTrack != null) {

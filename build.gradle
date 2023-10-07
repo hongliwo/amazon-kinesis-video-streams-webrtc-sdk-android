@@ -84,6 +84,14 @@ android {
             versionNameSuffix "-minsdk28"
         }
     }
+
+    // 配置打包的 so 文件
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+
 }
 
 repositories {
@@ -122,7 +130,9 @@ dependencies {
     }
 
     implementation 'org.osgi:org.osgi.framework:1.9.0'
-    implementation 'org.webrtc:google-webrtc:1.0.32006'
+    //implementation 'org.webrtc:google-webrtc:1.0.32006'
+    //implementation files('libs/libwebrtc.jar')
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.so'])
 
     implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
